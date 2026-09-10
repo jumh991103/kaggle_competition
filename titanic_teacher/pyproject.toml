@@ -8,10 +8,10 @@ dependencies = [
     "catboost>=1.2.10",
     "jupyter>=1.1.1",
     "lightgbm>=4.6.0",
-    "mglearn>=0.2.0",
     "pandas>=3.0.3",
-    "scikit-learn==1.4.2",
+    "scikit-learn>=1.4.2",
     "seaborn>=0.13.2",
     "xgboost>=3.3.0",
     "tqdm>=4.68.3",
+    "easydict>=1.13",
 ]

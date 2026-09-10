@@ -16,6 +16,8 @@ from catboost import CatBoostClassifier
 from .utils import reset_seeds
 from .evaluations import get_auc_score
 
+CAT_COLS = ['gender', 'embarked', 'title']
+
 
 #catboost는 importance가 없어서 함수로 만들었는데 이것도 이름(명명 규칙)을 나머지 모델과 같이 썼음.
 def cat_plot_importance(cat):
@@ -54,11 +56,9 @@ class Modeling: #학습 진행하는 클래스 세팅
     def __init__(
         self, x_tr:pd.DataFrame, y_tr:pd.DataFrame, #학습데이터
         vali_func=get_auc_score,  #평가함수
-        cat_cols = [ 
-            'pclass', 'sex', 'embarked', 'who', 'adult_male', 'deck', 'alone'
-        ]) -> None:
+        cat_cols = CAT_COLS,
+    ) ->None:
         self.__best_model = { #얘는 외부에서 봐야하지만 조작은 못하게 하기위해서. 대신 외부에서 봐야하니까 아래 get_best_model이라는 함수로 외부에서 볼수 있도록 함.
-    
             'model_name': None,
             'hpo': None,
             'train_score': 0.0,
@@ -71,7 +71,7 @@ class Modeling: #학습 진행하는 클래스 세팅
         self.__features = x_tr 
         self.__convert_dtype(self.__features)
         self.__valid_features_targets() #이걸 왜 init함수 안에 넣었찌? init함수에는 변수만 넣는거 아냐? ->학습하기전에 feature와 target을 만들어냄으로써 만약 학습할 데이터 자체가아니면 굳이 생성조차 할 필요가 없으므로
-
+        
 
     #사용불가능한 데이터타입들을 가능하게 변환하는건 test도 해야함. 똑같은 코드 두번써야함.->재사용해야하니까 함수로 만들자.
     def __convert_dtype(self, features):
@@ -109,19 +109,20 @@ class Modeling: #학습 진행하는 클래스 세팅
         return model, hpo
 
     def __evaluation(self, model, hpo, y_te, x_te):
-        #모델 평가
-        test_score = self.__vali_func(y=y_te, pred=model.predict(x_te))
+        test_pred_proba = model.predict_proba(x_te)[:, 1]
+        test_score = self.__vali_func(y=y_te, pred=test_pred_proba)
 
         if self.__best_model['test_score'] < test_score:
+            train_pred_proba = model.predict_proba(self.__features)[:, 1]
             self.__best_model = {
-                        'model': model,
-                        'model_name': model.__class__.__name__, #클래스명이 리턴됨.
-                        'hpo': hpo,
-                        'train_score': self.__vali_func(y=self.__targets, pred=model.predict(self.__features)),
-                        'y_pre_te' : model.predict(x_te),
-                        'test_score': test_score,
-                        'score_type': 'auc' #얘는 나중에 바꿔주신다고함.
-                    }
+                'model': model,
+                'model_name': model.__class__.__name__,
+                'hpo': hpo,
+                'train_score': self.__vali_func(y=self.__targets, pred=train_pred_proba),
+                'y_pre_te': model.predict(x_te),  # confusion matrix용 0/1 라벨은 그대로 유지
+                'test_score': test_score,
+                'score_type': 'auc'
+            }
 
     @reset_seeds()
     def fit_evaluation(self, y_te:pd.DataFrame, x_te:pd.DataFrame, add_hpo:dict={})-> None:
@@ -131,10 +132,11 @@ class Modeling: #학습 진행하는 클래스 세팅
             try:
                 model, hpo = self.__fit(model_type, add_hpo)
                 self.__evaluation(model, hpo, y_te, x_te)
-            except:
-                print(f"오류발생: {model_type.value[1].__class__.__name__}")
+            except Exception as e:
+                print(f"오류발생: {model_type.name} - {e}")
     def predict_by_best_model(self, features):
-        return self.__best_model['model'].predict(features)
+        self.__convert_dtype(features)  # test도 학습 데이터랑 같은 dtype 변환 적용
+        return self.__best_model['model'].predict_proba(features)[:, 1]
 
 
 
