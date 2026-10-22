@@ -1,2 +1,0 @@
-attempt_no,date,notebook_file,hypothesis,preprocessing,features_used,model,hyperparams,cv_strategy,train_score,valid_score,lb_score,notes
-1,2026-09-10,0910_attempt01_baseline.ipynb,"베이스라인부터 잡아본다 (전처리 최소화 + 기본 로지스틱회귀)","age 결측치는 전체 median으로 채움; embarked 결측치는 최빈값으로 채움; fare는 그대로",pclass;sex;age;sibsp;parch;fare;embarked,LogisticRegression,"C=1.0 (default)",StratifiedKFold(5),,,,베이스라인. 여기서부터 뭘 바꿨을 때 오르는지/내리는지 비교 시작
